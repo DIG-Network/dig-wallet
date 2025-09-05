@@ -1,11 +1,11 @@
+use crate::error::WalletError;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::{Path, PathBuf};
 use std::marker::PhantomData;
-use crate::error::WalletError;
+use std::path::{Path, PathBuf};
 
 /// A simple file-based cache implementation similar to the TypeScript FileCache
-pub struct FileCache<T> 
+pub struct FileCache<T>
 where
     T: Serialize + for<'de> Deserialize<'de>,
 {
@@ -13,7 +13,7 @@ where
     _phantom: PhantomData<T>,
 }
 
-impl<T> FileCache<T> 
+impl<T> FileCache<T>
 where
     T: Serialize + for<'de> Deserialize<'de>,
 {
@@ -22,26 +22,29 @@ where
         let base_path = match base_dir {
             Some(dir) => dir.to_path_buf(),
             None => dirs::home_dir()
-                .ok_or_else(|| WalletError::FileSystemError("Could not find home directory".to_string()))?
+                .ok_or_else(|| {
+                    WalletError::FileSystemError("Could not find home directory".to_string())
+                })?
                 .join(".dig"),
         };
-        
+
         let cache_dir = base_path.join(relative_file_path);
-        
-        let cache = Self { 
+
+        let cache = Self {
             cache_dir,
             _phantom: PhantomData,
         };
         cache.ensure_directory_exists()?;
-        
+
         Ok(cache)
     }
 
     /// Ensure the cache directory exists
     fn ensure_directory_exists(&self) -> Result<(), WalletError> {
         if !self.cache_dir.exists() {
-            fs::create_dir_all(&self.cache_dir)
-                .map_err(|e| WalletError::FileSystemError(format!("Failed to create cache directory: {}", e)))?;
+            fs::create_dir_all(&self.cache_dir).map_err(|e| {
+                WalletError::FileSystemError(format!("Failed to create cache directory: {}", e))
+            })?;
         }
         Ok(())
     }
@@ -54,42 +57,47 @@ where
     /// Retrieve cached data by key
     pub fn get(&self, key: &str) -> Result<Option<T>, WalletError> {
         let cache_file_path = self.get_cache_file_path(key);
-        
+
         if !cache_file_path.exists() {
             return Ok(None);
         }
 
-        let raw_data = fs::read_to_string(&cache_file_path)
-            .map_err(|e| WalletError::FileSystemError(format!("Failed to read cache file: {}", e)))?;
-        
-        let data: T = serde_json::from_str(&raw_data)
-            .map_err(|e| WalletError::SerializationError(format!("Failed to deserialize cache data: {}", e)))?;
-        
+        let raw_data = fs::read_to_string(&cache_file_path).map_err(|e| {
+            WalletError::FileSystemError(format!("Failed to read cache file: {}", e))
+        })?;
+
+        let data: T = serde_json::from_str(&raw_data).map_err(|e| {
+            WalletError::SerializationError(format!("Failed to deserialize cache data: {}", e))
+        })?;
+
         Ok(Some(data))
     }
 
     /// Save data to the cache
     pub fn set(&self, key: &str, data: &T) -> Result<(), WalletError> {
         let cache_file_path = self.get_cache_file_path(key);
-        
-        let serialized_data = serde_json::to_string_pretty(data)
-            .map_err(|e| WalletError::SerializationError(format!("Failed to serialize cache data: {}", e)))?;
-        
-        fs::write(&cache_file_path, serialized_data)
-            .map_err(|e| WalletError::FileSystemError(format!("Failed to write cache file: {}", e)))?;
-        
+
+        let serialized_data = serde_json::to_string_pretty(data).map_err(|e| {
+            WalletError::SerializationError(format!("Failed to serialize cache data: {}", e))
+        })?;
+
+        fs::write(&cache_file_path, serialized_data).map_err(|e| {
+            WalletError::FileSystemError(format!("Failed to write cache file: {}", e))
+        })?;
+
         Ok(())
     }
 
     /// Delete cached data by key
     pub fn delete(&self, key: &str) -> Result<(), WalletError> {
         let cache_file_path = self.get_cache_file_path(key);
-        
+
         if cache_file_path.exists() {
-            fs::remove_file(&cache_file_path)
-                .map_err(|e| WalletError::FileSystemError(format!("Failed to delete cache file: {}", e)))?;
+            fs::remove_file(&cache_file_path).map_err(|e| {
+                WalletError::FileSystemError(format!("Failed to delete cache file: {}", e))
+            })?;
         }
-        
+
         Ok(())
     }
 
@@ -99,15 +107,17 @@ where
             return Ok(vec![]);
         }
 
-        let entries = fs::read_dir(&self.cache_dir)
-            .map_err(|e| WalletError::FileSystemError(format!("Failed to read cache directory: {}", e)))?;
+        let entries = fs::read_dir(&self.cache_dir).map_err(|e| {
+            WalletError::FileSystemError(format!("Failed to read cache directory: {}", e))
+        })?;
 
         let mut keys = Vec::new();
-        
+
         for entry in entries {
-            let entry = entry
-                .map_err(|e| WalletError::FileSystemError(format!("Failed to read directory entry: {}", e)))?;
-            
+            let entry = entry.map_err(|e| {
+                WalletError::FileSystemError(format!("Failed to read directory entry: {}", e))
+            })?;
+
             if let Some(file_name) = entry.file_name().to_str() {
                 if file_name.ends_with(".json") {
                     let key = file_name.strip_suffix(".json").unwrap_or(file_name);
@@ -115,18 +125,18 @@ where
                 }
             }
         }
-        
+
         Ok(keys)
     }
 
     /// Clear all cached data
     pub fn clear(&self) -> Result<(), WalletError> {
         let keys = self.get_cached_keys()?;
-        
+
         for key in keys {
             self.delete(&key)?;
         }
-        
+
         Ok(())
     }
 }

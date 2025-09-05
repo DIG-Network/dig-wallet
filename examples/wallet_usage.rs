@@ -1,5 +1,4 @@
 use dig_wallet::{Wallet, WalletError};
-use datalayer_driver::NetworkType;
 
 #[tokio::main]
 async fn main() -> Result<(), WalletError> {
@@ -15,10 +14,10 @@ async fn main() -> Result<(), WalletError> {
     println!("🔑 Wallet Information:");
     let mnemonic = wallet.get_mnemonic()?;
     println!("   Mnemonic: {} words", mnemonic.split_whitespace().count());
-    
+
     let address = wallet.get_owner_public_key().await?;
     println!("   Address: {}", address);
-    
+
     let puzzle_hash = wallet.get_owner_puzzle_hash().await?;
     println!("   Puzzle Hash: {}", hex::encode(puzzle_hash.as_ref()));
     println!();
@@ -38,11 +37,12 @@ async fn main() -> Result<(), WalletError> {
     let signature = wallet.create_key_ownership_signature(nonce).await?;
     println!("   Nonce: {}", nonce);
     println!("   Signature: {}...", &signature[..32]);
-    
+
     // Verify the signature
     let public_key = wallet.get_public_synthetic_key().await?;
     let public_key_hex = hex::encode(public_key.to_bytes());
-    let is_valid = Wallet::verify_key_ownership_signature(nonce, &signature, &public_key_hex).await?;
+    let is_valid =
+        Wallet::verify_key_ownership_signature(nonce, &signature, &public_key_hex).await?;
     println!("   Signature Valid: {}", is_valid);
     println!();
 
@@ -61,14 +61,14 @@ async fn main() -> Result<(), WalletError> {
     println!("   - Wallet::connect_mainnet_peer()");
     println!("   - Wallet::connect_testnet_peer()");
     println!("   - Wallet::connect_random_peer(network, cert_path, key_path)");
-    
+
     /*
     // Uncomment this section if you have Chia SSL certificates set up
     println!("   Attempting to connect to mainnet...");
     match Wallet::connect_mainnet_peer().await {
         Ok(_peer) => {
             println!("   ✅ Successfully connected to mainnet peer!");
-            
+
             // Example of using the peer for coin operations
             // let coins = wallet.select_unspent_coins(&peer, 1000000, 1000, vec![]).await?;
             // println!("   Found {} unspent coins", coins.len());
@@ -79,7 +79,7 @@ async fn main() -> Result<(), WalletError> {
         }
     }
     */
-    
+
     println!("\n🎉 Example completed successfully!");
     println!("   The Rust wallet now has full feature parity with the TypeScript version!");
 

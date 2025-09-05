@@ -47,24 +47,17 @@
 //! ```
 
 pub mod error;
-pub mod wallet;
 pub mod file_cache;
+pub mod wallet;
 
 // Core exports
 pub use error::WalletError;
-pub use wallet::Wallet;
 pub use file_cache::{FileCache, ReservedCoinCache};
+pub use wallet::Wallet;
 
 // Re-export commonly used types from DataLayer-Driver
 pub use datalayer_driver::{
-    Peer, 
-    NetworkType, 
-    Coin, 
-    CoinSpend, 
-    Bytes32, 
-    PublicKey, 
-    SecretKey,
-    Signature,
+    Bytes32, Coin, CoinSpend, NetworkType, Peer, PublicKey, SecretKey, Signature,
 };
 
 // Version information
