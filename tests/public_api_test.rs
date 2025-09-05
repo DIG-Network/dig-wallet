@@ -92,7 +92,7 @@ async fn test_public_api_file_cache_exports() {
 #[test]
 fn test_public_api_type_exports() {
     // Test that all re-exported types are accessible
-    
+
     // This test verifies that the types can be used in function signatures
     #[allow(clippy::too_many_arguments)]
     fn _test_function_signatures(
