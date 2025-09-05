@@ -65,6 +65,20 @@ jobs:
       - name: Verify package can be packaged
         run: cargo package --allow-dirty
 
+      - name: Check if CRATES_IO_TOKEN is available
+        run: |
+          if [ -z "${{ secrets.CRATES_IO_TOKEN }}" ]; then
+            echo "❌ CRATES_IO_TOKEN secret is not set in repository settings"
+            echo "📋 To enable automatic publishing:"
+            echo "1. Go to https://crates.io/ and create an API token"
+            echo "2. Add the token as CRATES_IO_TOKEN secret in repository settings"
+            echo "3. Re-run this workflow or create a new release"
+            echo ""
+            echo "🔧 Manual publishing alternative:"
+            echo "cargo publish --token YOUR_TOKEN"
+            exit 1
+          fi
+
       - name: Publish to crates.io
         run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
         env:
