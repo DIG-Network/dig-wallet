@@ -1,0 +1,33 @@
+[package]
+name = "dig-wallet"
+version = "0.1.0"
+edition = "2021"
+authors = ["DIG Network <info@dig.net>"]
+description = "A comprehensive Rust wallet implementation for Chia blockchain with full DataLayer-Driver integration"
+homepage = "https://github.com/DIG-Network/digwallet-rust"
+repository = "https://github.com/DIG-Network/digwallet-rust"
+license = "MIT"
+keywords = ["chia", "blockchain", "wallet", "cryptocurrency", "bip39"]
+categories = ["cryptography::cryptocurrencies", "network-programming"]
+readme = "README.md"
+rust-version = "1.70"
+
+[dependencies]
+datalayer-driver = "0.1.50"
+bip39 = "2.0"
+thiserror = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+dirs = "5.0"
+hex = "0.4"
+rand = "0.8"
+base64 = "0.21"
+aes-gcm = "0.10"
+
+[dev-dependencies]
+tempfile = "3.0"
+
+[[example]]
+name = "wallet_usage"
+path = "examples/wallet_usage.rs"
