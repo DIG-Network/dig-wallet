@@ -315,7 +315,6 @@ impl Wallet {
 
     /// Check if a coin is spendable
     pub async fn is_coin_spendable(peer: &Peer, coin_id: &Bytes32) -> Result<bool, WalletError> {
-
         // Check if coin is spent using the DataLayer-Driver API
         let is_spent = datalayer_driver::is_coin_spent(
             peer,
