@@ -205,8 +205,8 @@ impl Wallet {
         let private_synthetic_key = self.get_private_synthetic_key().await?;
 
         let signature = sign_message(
-            Bytes::from(message.as_bytes().to_vec()),
-            private_synthetic_key,
+            &Bytes::from(message.as_bytes().to_vec()),
+            &private_synthetic_key,
         )
         .map_err(|e| WalletError::CryptoError(e.to_string()))?;
 
@@ -274,7 +274,7 @@ impl Wallet {
         let total_needed = coin_amount + fee;
 
         // Get unspent coin states from the DataLayer-Driver async API
-        let coin_states = datalayer_driver::async_api::get_all_unspent_coins_rust(
+        let coin_states = datalayer_driver::async_api::get_all_unspent_coins(
             peer,
             owner_puzzle_hash,
             None, // previous_height - start from genesis
@@ -294,7 +294,7 @@ impl Wallet {
             .collect();
 
         // Use the DataLayer-Driver's select_coins function
-        let selected_coins = datalayer_driver::select_coins_rust(&available_coins, total_needed)
+        let selected_coins = datalayer_driver::select_coins(&available_coins, total_needed)
             .map_err(|e| WalletError::DataLayerError(format!("Coin selection failed: {}", e)))?;
 
         if selected_coins.is_empty() {
@@ -315,10 +315,8 @@ impl Wallet {
 
     /// Check if a coin is spendable
     pub async fn is_coin_spendable(peer: &Peer, coin_id: &Bytes32) -> Result<bool, WalletError> {
-        use datalayer_driver::async_api::is_coin_spent_rust;
-
         // Check if coin is spent using the DataLayer-Driver API
-        let is_spent = is_coin_spent_rust(
+        let is_spent = datalayer_driver::is_coin_spent(
             peer,
             *coin_id,
             None,                                                         // last_height

@@ -37,11 +37,11 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Check formatting
-        run: cargo fmt --all -- --check
+        run: rustup component add rustfmt && cargo fmt --all -- --check
         if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest'
 
       - name: Check clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: rustup component add clippy && cargo clippy --all-targets --all-features -- -D warnings
         if: matrix.rust == 'stable'
 
       - name: Build

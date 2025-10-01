@@ -1,6 +1,6 @@
 [package]
 name = "dig-wallet"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 authors = ["DIG Network <info@dig.net>"]
 description = "A comprehensive Rust wallet implementation for Chia blockchain with full DataLayer-Driver integration"
@@ -13,7 +13,7 @@ readme = "README.md"
 rust-version = "1.70"
 
 [dependencies]
-datalayer-driver = "0.1.50"
+datalayer-driver = "1.0.1"
 bip39 = "2.0"
 thiserror = "1.0"
 tokio = { version = "1.0", features = ["full"] }
