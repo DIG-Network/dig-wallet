@@ -37,4 +37,7 @@ pub enum WalletError {
 
     #[error("DataLayer driver error: {0}")]
     DataLayerError(String),
+
+    #[error("CoinSetError: {0}")]
+    CoinSetError(String),
 }
