@@ -12,8 +12,7 @@ use datalayer_driver::{
     address_to_puzzle_hash, connect_random, get_coin_id, master_public_key_to_first_puzzle_hash,
     master_public_key_to_wallet_synthetic_key, master_secret_key_to_wallet_synthetic_secret_key,
     puzzle_hash_to_address, secret_key_to_public_key, sign_message, verify_signature, Bytes,
-    Bytes32, Coin, CoinSpend, NetworkType, Peer, PublicKey, SecretKey,
-    Signature,
+    Bytes32, Coin, CoinSpend, NetworkType, Peer, PublicKey, SecretKey, Signature,
 };
 use hex_literal::hex;
 use once_cell::sync::Lazy;
