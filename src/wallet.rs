@@ -8,6 +8,7 @@ use bip39::{Language, Mnemonic};
 use chia_wallet_sdk::driver::{Cat, CatInfo, Puzzle, StandardLayer};
 use chia_wallet_sdk::prelude::{Allocator, ToClvm, ToTreeHash};
 use chia_wallet_sdk::types::MAINNET_CONSTANTS;
+use datalayer_driver::async_api::get_all_unspent_coins;
 use datalayer_driver::Proof::Lineage;
 use datalayer_driver::{
     address_to_puzzle_hash, connect_random, get_coin_id, master_public_key_to_first_puzzle_hash,
@@ -23,7 +24,6 @@ use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
-use datalayer_driver::async_api::get_all_unspent_coins;
 
 pub static DIG_MIN_HEIGHT: u32 = 5777842;
 pub static DIG_COIN_ASSET_ID: Lazy<Bytes32> = Lazy::new(|| {
@@ -380,7 +380,6 @@ impl Wallet {
             proved_dig_token_coins.push(coin.clone());
         }
 
-
         Ok(proved_dig_token_coins)
     }
 
@@ -405,10 +404,7 @@ impl Wallet {
         Ok(selected_coins)
     }
 
-    pub async fn get_dig_balance(
-        &self,
-        peer: &Peer,
-    ) -> Result<u64, WalletError> {
+    pub async fn get_dig_balance(&self, peer: &Peer) -> Result<u64, WalletError> {
         let dig_coins = self.get_all_unspent_dig_coins(peer, vec![]).await?;
         let dig_balance_mojos = dig_coins.iter().map(|c| c.amount).sum::<u64>();
         Ok(dig_balance_mojos)
