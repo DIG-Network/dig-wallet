@@ -5,16 +5,14 @@ use aes_gcm::{
 };
 use base64::{engine::general_purpose, Engine as _};
 use bip39::{Language, Mnemonic};
-use chia_wallet_sdk::driver::{Cat, CatInfo, Puzzle, StandardLayer};
-use chia_wallet_sdk::prelude::{Allocator, ToClvm, ToTreeHash};
+use chia_wallet_sdk::driver::{Cat, CatInfo, Puzzle};
+use chia_wallet_sdk::prelude::{Allocator, ToClvm};
 use chia_wallet_sdk::types::MAINNET_CONSTANTS;
-use datalayer_driver::async_api::get_all_unspent_coins;
-use datalayer_driver::Proof::Lineage;
 use datalayer_driver::{
     address_to_puzzle_hash, connect_random, get_coin_id, master_public_key_to_first_puzzle_hash,
     master_public_key_to_wallet_synthetic_key, master_secret_key_to_wallet_synthetic_secret_key,
     puzzle_hash_to_address, secret_key_to_public_key, sign_message, verify_signature, Bytes,
-    Bytes32, Coin, CoinSpend, LineageProof, NetworkType, Peer, Proof, PublicKey, SecretKey,
+    Bytes32, Coin, CoinSpend, NetworkType, Peer, PublicKey, SecretKey,
     Signature,
 };
 use hex_literal::hex;
@@ -347,7 +345,7 @@ impl Wallet {
                 .map_err(|e| {
                     WalletError::NetworkError(format!("Failed to get puzzle and solution: {}", e))
                 })?
-                .map_err(|e| WalletError::CoinSetError("Coin state rejected".to_string()))?;
+                .map_err(|_| WalletError::CoinSetError("Coin state rejected".to_string()))?;
 
             let mut allocator = Allocator::new();
 
@@ -377,7 +375,7 @@ impl Wallet {
             })?;
 
             // lineage proved. append coin in question
-            proved_dig_token_coins.push(coin.clone());
+            proved_dig_token_coins.push(*coin);
         }
 
         Ok(proved_dig_token_coins)
