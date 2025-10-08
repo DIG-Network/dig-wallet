@@ -1,6 +1,6 @@
 [package]
 name = "dig-wallet"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["DIG Network <info@dig.net>"]
 description = "A comprehensive Rust wallet implementation for Chia blockchain with full DataLayer-Driver integration"
