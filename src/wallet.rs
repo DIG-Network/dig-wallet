@@ -5,8 +5,9 @@ use aes_gcm::{
 };
 use base64::{engine::general_purpose, Engine as _};
 use bip39::{Language, Mnemonic};
-use chia_wallet_sdk::driver::{Cat, CatInfo, Puzzle};
-use chia_wallet_sdk::prelude::{Allocator, ToClvm};
+use chia_wallet_sdk::driver::{Cat, Puzzle};
+use chia_wallet_sdk::prelude::{Allocator, ToClvm, TreeHash};
+use chia::puzzles::cat::CatArgs;
 use chia_wallet_sdk::types::MAINNET_CONSTANTS;
 use datalayer_driver::{
     address_to_puzzle_hash, connect_random, get_coin_id, master_public_key_to_first_puzzle_hash,
@@ -155,27 +156,6 @@ impl Wallet {
         Ok(master_public_key_to_first_puzzle_hash(&master_pk))
     }
 
-    /// Get the DIG token outer puzzle hash
-    pub async fn get_dig_coin_outer_puzzle_hash(
-        &self,
-        outer_puzzle: Option<CatInfo>,
-    ) -> Result<Bytes32, WalletError> {
-        let dig_cat_outer_ph = match outer_puzzle {
-            Some(outer_puzzle) => outer_puzzle.puzzle_hash(),
-            None => {
-                let cat_outer_puzzle = self.get_cat_coin_outer_puzzle().await?;
-                cat_outer_puzzle.puzzle_hash()
-            }
-        };
-        let bytes = Bytes32::new(dig_cat_outer_ph.to_bytes());
-        Ok(bytes)
-    }
-
-    pub async fn get_cat_coin_outer_puzzle(&self) -> Result<CatInfo, WalletError> {
-        let p2_ph = self.get_owner_puzzle_hash().await?;
-        Ok(CatInfo::new(*DIG_COIN_ASSET_ID, None, p2_ph))
-    }
-
     /// Get the owner public key as an address
     pub async fn get_owner_public_key(&self) -> Result<String, WalletError> {
         let owner_puzzle_hash = self.get_owner_puzzle_hash().await?;
@@ -302,13 +282,14 @@ impl Wallet {
         omit_coins: Vec<Coin>,
         verbose: bool,
     ) -> Result<Vec<Coin>, WalletError> {
-        let dig_cat = self.get_cat_coin_outer_puzzle().await?;
-        let dig_cat_ph = self.get_dig_coin_outer_puzzle_hash(Some(dig_cat)).await?;
+        let p2 = self.get_owner_puzzle_hash().await?;
+        let dig_cat_ph = CatArgs::curry_tree_hash(*DIG_COIN_ASSET_ID, TreeHash::from(p2));
+        let dig_cat_ph_bytes = Bytes32::from(dig_cat_ph.to_bytes());
 
         // Get unspent coin states from the DataLayer-Driver async API
         let coin_states = datalayer_driver::async_api::get_all_unspent_coins(
             peer,
-            dig_cat_ph,
+            dig_cat_ph_bytes,
             None, // previous_height - start from genesis
             datalayer_driver::constants::get_mainnet_genesis_challenge(), // Use mainnet for now
         )
@@ -345,7 +326,7 @@ impl Wallet {
                     Err(_) => {
                         if verbose {
                             eprintln!(
-                                "coin_id {} | {}",
+                                "ERROR: coin_id {} | {}",
                                 coin_id,
                                 WalletError::CoinSetError("Coin state rejected".to_string())
                             );
@@ -357,7 +338,7 @@ impl Wallet {
                 Err(error) => {
                     if verbose {
                         eprintln!(
-                            "coin_id {} | {}",
+                            "ERROR: coin_id {} | {}",
                             coin_id,
                             WalletError::NetworkError(format!(
                                 "Failed to get coin state: {}",
@@ -379,7 +360,7 @@ impl Wallet {
                     Err(_) => {
                         if verbose {
                             eprintln!(
-                                "coin_id {} | {}",
+                                "ERROR: coin_id {} | {}",
                                 coin_id,
                                 WalletError::CoinSetError("Coin state rejected".to_string())
                             );
@@ -391,7 +372,7 @@ impl Wallet {
                 Err(error) => {
                     if verbose {
                         eprintln!(
-                            "coin_id {} | {}",
+                            "ERROR: coin_id {} | {}",
                             coin_id,
                             WalletError::NetworkError(format!(
                                 "Failed to get puzzle and solution: {}",
@@ -410,7 +391,7 @@ impl Wallet {
                 Err(error) => {
                     if verbose {
                         eprintln!(
-                            "coin_id {} | {}",
+                            "ERROR: coin_id {} | {}",
                             coin_id,
                             WalletError::CoinSetError(format!(
                                 "Failed to parse puzzle and solution: {}",
@@ -430,7 +411,7 @@ impl Wallet {
                 Err(error) => {
                     if verbose {
                         eprintln!(
-                            "coin_id {} | {}",
+                            "ERROR: coin_id {} | {}",
                             coin_id,
                             WalletError::CoinSetError(format!(
                                 "Failed to parse puzzle and solution: {}",
@@ -457,7 +438,7 @@ impl Wallet {
                 Err(error) => {
                     if verbose {
                         eprintln!(
-                            "coin_id {} | {}",
+                            "ERROR: coin_id {} | {}",
                             coin_id,
                             WalletError::CoinSetError(format!(
                                 "Failed to parse CAT and prove lineage: {}",

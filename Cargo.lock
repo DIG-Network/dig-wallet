@@ -982,6 +982,7 @@ dependencies = [
  "aes-gcm",
  "base64 0.21.7",
  "bip39",
+ "chia",
  "chia-wallet-sdk",
  "datalayer-driver",
  "dirs",
