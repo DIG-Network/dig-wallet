@@ -5,11 +5,18 @@ use aes_gcm::{
 };
 use base64::{engine::general_purpose, Engine as _};
 use bip39::{Language, Mnemonic};
+use chia::protocol::CoinState;
+use chia::puzzles::cat::CatArgs;
 use chia_wallet_sdk::driver::{Cat, Puzzle};
 use chia_wallet_sdk::prelude::{Allocator, ToClvm, TreeHash};
-use chia::puzzles::cat::CatArgs;
 use chia_wallet_sdk::types::MAINNET_CONSTANTS;
-use datalayer_driver::{address_to_puzzle_hash, connect_random, get_coin_id, master_public_key_to_first_puzzle_hash, master_public_key_to_wallet_synthetic_key, master_secret_key_to_wallet_synthetic_secret_key, puzzle_hash_to_address, secret_key_to_public_key, sign_message, verify_signature, Bytes, Bytes32, Coin, CoinSpend, NetworkType, Peer, PublicKey, SecretKey, Signature, UnspentCoinStates};
+use datalayer_driver::{
+    address_to_puzzle_hash, connect_random, get_coin_id, master_public_key_to_first_puzzle_hash,
+    master_public_key_to_wallet_synthetic_key, master_secret_key_to_wallet_synthetic_secret_key,
+    puzzle_hash_to_address, secret_key_to_public_key, sign_message, verify_signature, Bytes,
+    Bytes32, Coin, CoinSpend, NetworkType, Peer, PublicKey, SecretKey, Signature,
+    UnspentCoinStates,
+};
 use hex_literal::hex;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -17,7 +24,6 @@ use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
-use chia::protocol::CoinState;
 
 pub static DIG_MIN_HEIGHT: u32 = 5777842;
 pub static DIG_COIN_ASSET_ID: Lazy<Bytes32> = Lazy::new(|| {
@@ -315,13 +321,14 @@ impl Wallet {
                         eprintln!(
                             "ERROR: coin_id {} | {}",
                             coin_id,
-                            WalletError::CoinSetError("Cannot determine coin creation height".to_string())
+                            WalletError::CoinSetError(
+                                "Cannot determine coin creation height".to_string()
+                            )
                         );
                     }
                     continue;
                 }
             };
-
 
             // 1) Request parent coin state
             let parent_state_result = peer
@@ -393,7 +400,9 @@ impl Wallet {
                         eprintln!(
                             "ERROR: coin_id {} | {}",
                             coin_id,
-                            WalletError::CoinSetError("Parent puzzle solution rejected".to_string())
+                            WalletError::CoinSetError(
+                                "Parent puzzle solution rejected".to_string()
+                            )
                         );
                     }
                     continue;
@@ -401,7 +410,8 @@ impl Wallet {
             };
 
             // 3) Convert puzzle to CLVM
-            let parent_puzzle_ptr = match parent_puzzle_and_solution.puzzle.to_clvm(&mut allocator) {
+            let parent_puzzle_ptr = match parent_puzzle_and_solution.puzzle.to_clvm(&mut allocator)
+            {
                 Ok(ptr) => ptr,
                 Err(error) => {
                     if verbose {
@@ -421,7 +431,8 @@ impl Wallet {
             let parent_puzzle = Puzzle::parse(&allocator, parent_puzzle_ptr);
 
             // 4) Convert solution to CLVM
-            let parent_solution = match parent_puzzle_and_solution.solution.to_clvm(&mut allocator) {
+            let parent_solution = match parent_puzzle_and_solution.solution.to_clvm(&mut allocator)
+            {
                 Ok(solution) => solution,
                 Err(error) => {
                     if verbose {
