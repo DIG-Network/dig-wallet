@@ -9,12 +9,7 @@ use chia_wallet_sdk::driver::{Cat, Puzzle};
 use chia_wallet_sdk::prelude::{Allocator, ToClvm, TreeHash};
 use chia::puzzles::cat::CatArgs;
 use chia_wallet_sdk::types::MAINNET_CONSTANTS;
-use datalayer_driver::{
-    address_to_puzzle_hash, connect_random, get_coin_id, master_public_key_to_first_puzzle_hash,
-    master_public_key_to_wallet_synthetic_key, master_secret_key_to_wallet_synthetic_secret_key,
-    puzzle_hash_to_address, secret_key_to_public_key, sign_message, verify_signature, Bytes,
-    Bytes32, Coin, CoinSpend, NetworkType, Peer, PublicKey, SecretKey, Signature,
-};
+use datalayer_driver::{address_to_puzzle_hash, connect_random, get_coin_id, master_public_key_to_first_puzzle_hash, master_public_key_to_wallet_synthetic_key, master_secret_key_to_wallet_synthetic_secret_key, puzzle_hash_to_address, secret_key_to_public_key, sign_message, verify_signature, Bytes, Bytes32, Coin, CoinSpend, NetworkType, Peer, PublicKey, SecretKey, Signature, UnspentCoinStates};
 use hex_literal::hex;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -22,6 +17,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
+use chia::protocol::CoinState;
 
 pub static DIG_MIN_HEIGHT: u32 = 5777842;
 pub static DIG_COIN_ASSET_ID: Lazy<Bytes32> = Lazy::new(|| {
@@ -287,7 +283,7 @@ impl Wallet {
         let dig_cat_ph_bytes = Bytes32::from(dig_cat_ph.to_bytes());
 
         // Get unspent coin states from the DataLayer-Driver async API
-        let coin_states = datalayer_driver::async_api::get_all_unspent_coins(
+        let unspent_coin_states = datalayer_driver::async_api::get_all_unspent_coins(
             peer,
             dig_cat_ph_bytes,
             None, // previous_height - start from genesis
@@ -299,42 +295,46 @@ impl Wallet {
         // Convert coin states to coins and filter out omitted coins
         let omit_coin_ids: Vec<Bytes32> = omit_coins.iter().map(get_coin_id).collect();
 
-        let available_coins: Vec<Coin> = coin_states
+        let available_coin_states: Vec<CoinState> = unspent_coin_states
             .coin_states
             .into_iter()
-            .map(|cs| cs.coin)
-            .filter(|coin| !omit_coin_ids.contains(&get_coin_id(coin)))
+            .filter(|coin_state| !omit_coin_ids.contains(&get_coin_id(&coin_state.coin)))
             .collect();
 
         let mut proved_dig_token_coins: Vec<Coin> = vec![];
 
         let mut allocator = Allocator::new();
 
-        for coin in &available_coins {
+        for coin_state in &available_coin_states {
+            let coin = &coin_state.coin;
             let coin_id = coin.coin_id();
-            let parent_state = match peer
+            let coin_created_height = match coin_state.created_height {
+                Some(height) => height,
+                None => {
+                    if verbose {
+                        eprintln!(
+                            "ERROR: coin_id {} | {}",
+                            coin_id,
+                            WalletError::CoinSetError("Cannot determine coin creation height".to_string())
+                        );
+                    }
+                    continue;
+                }
+            };
+
+
+            // 1) Request parent coin state
+            let parent_state_result = peer
                 .request_coin_state(
                     vec![coin.parent_coin_info],
                     None,
                     MAINNET_CONSTANTS.genesis_challenge,
                     false,
                 )
-                .await
-            {
-                Ok(response) => match response {
-                    Ok(parent_state) => parent_state,
-                    Err(_) => {
-                        if verbose {
-                            eprintln!(
-                                "ERROR: coin_id {} | {}",
-                                coin_id,
-                                WalletError::CoinSetError("Coin state rejected".to_string())
-                            );
-                        }
+                .await;
 
-                        continue;
-                    }
-                },
+            let parent_state_response = match parent_state_result {
+                Ok(response) => response,
                 Err(error) => {
                     if verbose {
                         eprintln!(
@@ -346,29 +346,31 @@ impl Wallet {
                             ))
                         );
                     }
-
                     continue;
                 }
             };
 
-            let parent_puzzle_and_solution = match peer
-                .request_puzzle_and_solution(parent_state.coin_ids[0], DIG_MIN_HEIGHT)
-                .await
-            {
-                Ok(response) => match response {
-                    Ok(puzzle_and_solution) => puzzle_and_solution,
-                    Err(_) => {
-                        if verbose {
-                            eprintln!(
-                                "ERROR: coin_id {} | {}",
-                                coin_id,
-                                WalletError::CoinSetError("Coin state rejected".to_string())
-                            );
-                        }
-
-                        continue;
+            let parent_state = match parent_state_response {
+                Ok(state) => state,
+                Err(_) => {
+                    if verbose {
+                        eprintln!(
+                            "ERROR: coin_id {} | {}",
+                            coin_id,
+                            WalletError::CoinSetError("Coin state rejected".to_string())
+                        );
                     }
-                },
+                    continue;
+                }
+            };
+
+            // 2) Request parent puzzle and solution
+            let parent_puzzle_and_solution_result = peer
+                .request_puzzle_and_solution(parent_state.coin_ids[0], coin_created_height)
+                .await;
+
+            let parent_puzzle_and_solution_response = match parent_puzzle_and_solution_result {
+                Ok(response) => response,
                 Err(error) => {
                     if verbose {
                         eprintln!(
@@ -380,14 +382,27 @@ impl Wallet {
                             ))
                         );
                     }
-
                     continue;
                 }
             };
 
-            let parent_puzzle_ptr = match parent_puzzle_and_solution.puzzle.to_clvm(&mut allocator)
-            {
-                Ok(puzzle_ptr) => puzzle_ptr,
+            let parent_puzzle_and_solution = match parent_puzzle_and_solution_response {
+                Ok(v) => v,
+                Err(_) => {
+                    if verbose {
+                        eprintln!(
+                            "ERROR: coin_id {} | {}",
+                            coin_id,
+                            WalletError::CoinSetError("Parent puzzle solution rejected".to_string())
+                        );
+                    }
+                    continue;
+                }
+            };
+
+            // 3) Convert puzzle to CLVM
+            let parent_puzzle_ptr = match parent_puzzle_and_solution.puzzle.to_clvm(&mut allocator) {
+                Ok(ptr) => ptr,
                 Err(error) => {
                     if verbose {
                         eprintln!(
@@ -399,14 +414,14 @@ impl Wallet {
                             ))
                         );
                     }
-
                     continue;
                 }
             };
 
             let parent_puzzle = Puzzle::parse(&allocator, parent_puzzle_ptr);
-            let parent_solution = match parent_puzzle_and_solution.solution.to_clvm(&mut allocator)
-            {
+
+            // 4) Convert solution to CLVM
+            let parent_solution = match parent_puzzle_and_solution.solution.to_clvm(&mut allocator) {
                 Ok(solution) => solution,
                 Err(error) => {
                     if verbose {
@@ -419,18 +434,18 @@ impl Wallet {
                             ))
                         );
                     }
-
                     continue;
                 }
             };
 
-            // this instantiation proves the lineage of the coin. not used beyond that
-            match Cat::parse_children(
+            // 5) Parse CAT to prove lineage
+            let cat_parse_result = Cat::parse_children(
                 &mut allocator,
                 parent_state.coin_states[0].coin,
                 parent_puzzle,
                 parent_solution,
-            ) {
+            );
+            match cat_parse_result {
                 Ok(_) => {
                     // lineage proved. append coin in question
                     proved_dig_token_coins.push(*coin);
@@ -446,7 +461,6 @@ impl Wallet {
                             ))
                         );
                     }
-
                     continue;
                 }
             }
