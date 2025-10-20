@@ -14,7 +14,7 @@ rust-version = "1.70"
 
 [dependencies]
 datalayer-driver = "1.0.1"
-chia-wallet-sdk = "0.29.0"
+chia-wallet-sdk = "0.30.0"
 chia = "0.26.0"
 bip39 = "2.0"
 thiserror = "1.0"

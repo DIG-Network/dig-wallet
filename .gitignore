@@ -2,6 +2,7 @@
 /target/
 **/*.rs.bk
 *.pdb
+config.toml
 
 # IDE
 .vscode/

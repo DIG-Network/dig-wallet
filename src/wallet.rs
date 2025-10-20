@@ -19,12 +19,11 @@ use datalayer_driver::{
 use hex_literal::hex;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::fs;
 use std::path::PathBuf;
 
-pub static DIG_MIN_HEIGHT: u32 = 5777842;
 pub static DIG_COIN_ASSET_ID: Lazy<Bytes32> = Lazy::new(|| {
     Bytes32::new(hex!(
         "a406d3a9de984d03c9591c10d917593b434d5263cabe2b42f6b367df16832f81"
@@ -48,6 +47,7 @@ struct KeyringData {
     wallets: HashMap<String, EncryptedData>,
 }
 
+#[derive(Debug, Clone)]
 pub struct Wallet {
     mnemonic: Option<String>,
     wallet_name: String,
@@ -276,13 +276,12 @@ impl Wallet {
     }
 
     /// Get all unspent DIG Token coins
-    // todo: this should be moved to the driver
-    pub async fn get_all_unspent_dig_coins(
+    pub async fn get_all_unspent_dig_cats(
         &self,
         peer: &Peer,
         omit_coins: Vec<Coin>,
         verbose: bool,
-    ) -> Result<Vec<Coin>, WalletError> {
+    ) -> Result<Vec<Cat>, WalletError> {
         let p2 = self.get_owner_puzzle_hash().await?;
         let dig_cat_ph = CatArgs::curry_tree_hash(*DIG_COIN_ASSET_ID, TreeHash::from(p2));
         let dig_cat_ph_bytes = Bytes32::from(dig_cat_ph.to_bytes());
@@ -294,19 +293,18 @@ impl Wallet {
             None, // previous_height - start from genesis
             datalayer_driver::constants::get_mainnet_genesis_challenge(), // Use mainnet for now
         )
-        .await
-        .map_err(|e| WalletError::NetworkError(format!("Failed to get unspent coins: {}", e)))?;
+            .await
+            .map_err(|e| WalletError::NetworkError(format!("Failed to get unspent coins: {}", e)))?;
 
         // Convert coin states to coins and filter out omitted coins
         let omit_coin_ids: Vec<Bytes32> = omit_coins.iter().map(get_coin_id).collect();
-
         let available_coin_states: Vec<CoinState> = unspent_coin_states
             .coin_states
             .into_iter()
             .filter(|coin_state| !omit_coin_ids.contains(&get_coin_id(&coin_state.coin)))
             .collect();
 
-        let mut proved_dig_token_coins: Vec<Coin> = vec![];
+        let mut proved_dig_cats: Vec<Cat> = vec![];
 
         let mut allocator = Allocator::new();
 
@@ -329,136 +327,12 @@ impl Wallet {
                 }
             };
 
-            // 1) Request parent coin state
-            let parent_state_result = peer
-                .request_coin_state(
-                    vec![coin.parent_coin_info],
-                    None,
-                    MAINNET_CONSTANTS.genesis_challenge,
-                    false,
-                )
-                .await;
-
-            let parent_state_response = match parent_state_result {
-                Ok(response) => response,
-                Err(error) => {
-                    if verbose {
-                        eprintln!(
-                            "ERROR: coin_id {} | {}",
-                            coin_id,
-                            WalletError::NetworkError(format!(
-                                "Failed to get coin state: {}",
-                                error
-                            ))
-                        );
-                    }
-                    continue;
-                }
-            };
-
-            let parent_state = match parent_state_response {
-                Ok(state) => state,
-                Err(_) => {
-                    if verbose {
-                        eprintln!(
-                            "ERROR: coin_id {} | {}",
-                            coin_id,
-                            WalletError::CoinSetError("Coin state rejected".to_string())
-                        );
-                    }
-                    continue;
-                }
-            };
-
-            // 2) Request parent puzzle and solution
-            let parent_puzzle_and_solution_result = peer
-                .request_puzzle_and_solution(parent_state.coin_ids[0], coin_created_height)
-                .await;
-
-            let parent_puzzle_and_solution_response = match parent_puzzle_and_solution_result {
-                Ok(response) => response,
-                Err(error) => {
-                    if verbose {
-                        eprintln!(
-                            "ERROR: coin_id {} | {}",
-                            coin_id,
-                            WalletError::NetworkError(format!(
-                                "Failed to get puzzle and solution: {}",
-                                error
-                            ))
-                        );
-                    }
-                    continue;
-                }
-            };
-
-            let parent_puzzle_and_solution = match parent_puzzle_and_solution_response {
-                Ok(v) => v,
-                Err(_) => {
-                    if verbose {
-                        eprintln!(
-                            "ERROR: coin_id {} | {}",
-                            coin_id,
-                            WalletError::CoinSetError(
-                                "Parent puzzle solution rejected".to_string()
-                            )
-                        );
-                    }
-                    continue;
-                }
-            };
-
-            // 3) Convert puzzle to CLVM
-            let parent_puzzle_ptr = match parent_puzzle_and_solution.puzzle.to_clvm(&mut allocator)
-            {
-                Ok(ptr) => ptr,
-                Err(error) => {
-                    if verbose {
-                        eprintln!(
-                            "ERROR: coin_id {} | {}",
-                            coin_id,
-                            WalletError::CoinSetError(format!(
-                                "Failed to parse puzzle and solution: {}",
-                                error
-                            ))
-                        );
-                    }
-                    continue;
-                }
-            };
-
-            let parent_puzzle = Puzzle::parse(&allocator, parent_puzzle_ptr);
-
-            // 4) Convert solution to CLVM
-            let parent_solution = match parent_puzzle_and_solution.solution.to_clvm(&mut allocator)
-            {
-                Ok(solution) => solution,
-                Err(error) => {
-                    if verbose {
-                        eprintln!(
-                            "ERROR: coin_id {} | {}",
-                            coin_id,
-                            WalletError::CoinSetError(format!(
-                                "Failed to parse puzzle and solution: {}",
-                                error
-                            ))
-                        );
-                    }
-                    continue;
-                }
-            };
-
-            // 5) Parse CAT to prove lineage
-            let cat_parse_result = Cat::parse_children(
-                &mut allocator,
-                parent_state.coin_states[0].coin,
-                parent_puzzle,
-                parent_solution,
-            );
+            //Parse CAT to prove lineage
+            let cat_parse_result = datalayer_driver::async_api::prove_dig_cat_coin(peer, coin, coin_created_height).await;
             match cat_parse_result {
-                Ok(_) => {
+                Ok(parsed_cat) => {
                     // lineage proved. append coin in question
-                    proved_dig_token_coins.push(*coin);
+                    proved_dig_cats.push(parsed_cat);
                 }
                 Err(error) => {
                     if verbose {
@@ -476,38 +350,41 @@ impl Wallet {
             }
         }
 
-        Ok(proved_dig_token_coins)
+        Ok(proved_dig_cats)
     }
 
-    pub async fn select_unspent_dig_token_coins(
+    pub async fn select_unspent_dig_cats(
         &self,
         peer: &Peer,
         coin_amount: u64,
-        fee: u64,
         omit_coins: Vec<Coin>,
         verbose: bool,
-    ) -> Result<Vec<Coin>, WalletError> {
-        let total_needed = coin_amount + fee;
-        let available_dig_coins = self
-            .get_all_unspent_dig_coins(peer, omit_coins, verbose)
+    ) -> Result<Vec<Cat>, WalletError> {
+        let available_dig_cats = self
+            .get_all_unspent_dig_cats(peer, omit_coins, verbose)
             .await?;
+        
+        let dig_coins = available_dig_cats.iter().map(|cat| cat.coin).collect::<Vec<_>>();
 
         // Use the DataLayer-Driver's select_coins function
-        let selected_coins = datalayer_driver::select_coins(&available_dig_coins, total_needed)
+        let selected_coins = datalayer_driver::select_coins(&dig_coins, coin_amount)
             .map_err(|e| WalletError::DataLayerError(format!("Coin selection failed: {}", e)))?;
 
         if selected_coins.is_empty() {
             return Err(WalletError::NoUnspentCoins);
         }
 
-        Ok(selected_coins)
+        let selected_coins_ids: HashSet<Bytes32> = selected_coins.iter().map(get_coin_id).collect();
+        let selected_cats = available_dig_cats.into_iter().filter(|cat| selected_coins_ids.contains(&cat.coin.coin_id())).collect::<Vec<_>>();
+
+        Ok(selected_cats)
     }
 
     pub async fn get_dig_balance(&self, peer: &Peer, verbose: bool) -> Result<u64, WalletError> {
-        let dig_coins = self
-            .get_all_unspent_dig_coins(peer, vec![], verbose)
+        let dig_cats = self
+            .get_all_unspent_dig_cats(peer, vec![], verbose)
             .await?;
-        let dig_balance = dig_coins.iter().map(|c| c.amount).sum::<u64>();
+        let dig_balance = dig_cats.iter().map(|c| c.coin.amount).sum::<u64>();
         Ok(dig_balance)
     }
 
