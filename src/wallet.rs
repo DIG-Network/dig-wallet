@@ -24,11 +24,9 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 
-pub static DIG_COIN_ASSET_ID: Lazy<Bytes32> = Lazy::new(|| {
-    Bytes32::new(hex!(
+pub const DIG_COIN_ASSET_ID: Bytes32 = Bytes32::new(hex!(
         "a406d3a9de984d03c9591c10d917593b434d5263cabe2b42f6b367df16832f81"
-    ))
-});
+    ));
 const KEYRING_FILE: &str = "keyring.json";
 // Cache duration constant - keeping for potential future use
 #[allow(dead_code)]
@@ -272,7 +270,7 @@ impl Wallet {
             public_key,
             signature,
         )
-        .map_err(|e| WalletError::CryptoError(e.to_string()))
+            .map_err(|e| WalletError::CryptoError(e.to_string()))
     }
 
     /// Get all unspent DIG Token coins
@@ -283,7 +281,7 @@ impl Wallet {
         verbose: bool,
     ) -> Result<Vec<Cat>, WalletError> {
         let p2 = self.get_owner_puzzle_hash().await?;
-        let dig_cat_ph = CatArgs::curry_tree_hash(*DIG_COIN_ASSET_ID, TreeHash::from(p2));
+        let dig_cat_ph = CatArgs::curry_tree_hash(DIG_COIN_ASSET_ID, TreeHash::from(p2));
         let dig_cat_ph_bytes = Bytes32::from(dig_cat_ph.to_bytes());
 
         // Get unspent coin states from the DataLayer-Driver async API
@@ -305,8 +303,6 @@ impl Wallet {
             .collect();
 
         let mut proved_dig_cats: Vec<Cat> = vec![];
-
-        let mut allocator = Allocator::new();
 
         for coin_state in &available_coin_states {
             let coin = &coin_state.coin;
