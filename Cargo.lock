@@ -3664,7 +3664,3 @@ dependencies = [
  "quote",
  "syn",
 ]
-
-[[patch.unused]]
-name = "dig-store-coin"
-version = "0.1.0"

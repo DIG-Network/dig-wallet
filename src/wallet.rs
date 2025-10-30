@@ -7,9 +7,8 @@ use base64::{engine::general_purpose, Engine as _};
 use bip39::{Language, Mnemonic};
 use chia::protocol::CoinState;
 use chia::puzzles::cat::CatArgs;
-use chia_wallet_sdk::driver::{Cat, Puzzle};
-use chia_wallet_sdk::prelude::{Allocator, ToClvm, TreeHash};
-use chia_wallet_sdk::types::MAINNET_CONSTANTS;
+use chia_wallet_sdk::driver::{Cat};
+use chia_wallet_sdk::prelude::{ ToClvm, TreeHash};
 use datalayer_driver::{
     address_to_puzzle_hash, connect_random, get_coin_id, master_public_key_to_first_puzzle_hash,
     master_public_key_to_wallet_synthetic_key, master_secret_key_to_wallet_synthetic_secret_key,
@@ -17,16 +16,13 @@ use datalayer_driver::{
     Bytes32, Coin, CoinSpend, NetworkType, Peer, PublicKey, SecretKey, Signature,
 };
 use hex_literal::hex;
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::fs;
 use std::path::PathBuf;
+use datalayer_driver::wallet::DIG_ASSET_ID;
 
-pub const DIG_COIN_ASSET_ID: Bytes32 = Bytes32::new(hex!(
-        "a406d3a9de984d03c9591c10d917593b434d5263cabe2b42f6b367df16832f81"
-    ));
 const KEYRING_FILE: &str = "keyring.json";
 // Cache duration constant - keeping for potential future use
 #[allow(dead_code)]
@@ -280,8 +276,8 @@ impl Wallet {
         omit_coins: Vec<Coin>,
         verbose: bool,
     ) -> Result<Vec<Cat>, WalletError> {
-        let p2 = self.get_owner_puzzle_hash().await?;
-        let dig_cat_ph = CatArgs::curry_tree_hash(DIG_COIN_ASSET_ID, TreeHash::from(p2));
+        let owner_puzzle_hash = self.get_owner_puzzle_hash().await?;
+        let dig_cat_ph = CatArgs::curry_tree_hash(DIG_ASSET_ID, TreeHash::from(owner_puzzle_hash));
         let dig_cat_ph_bytes = Bytes32::from(dig_cat_ph.to_bytes());
 
         // Get unspent coin states from the DataLayer-Driver async API

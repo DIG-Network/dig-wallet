@@ -2,7 +2,7 @@
 /target/
 **/*.rs.bk
 *.pdb
-config.toml
+.cargo/config.toml
 
 # IDE
 .vscode/
