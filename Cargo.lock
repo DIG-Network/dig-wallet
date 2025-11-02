@@ -921,7 +921,7 @@ checksum = "2a2330da5de22e8a3cb63252ce2abb30116bf5265e89c0e01bc17015ce30a476"
 
 [[package]]
 name = "datalayer-driver"
-version = "1.0.1"
+version = "2.0.0"
 dependencies = [
  "chia",
  "chia-puzzles",
@@ -3664,3 +3664,7 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[patch.unused]]
+name = "dig-store-coin"
+version = "0.1.0"
