@@ -63,9 +63,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.99"
+version = "1.0.100"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0674a1ddeecb70197781e945de4b3b8ffb61fa939a5597bcf48503737663100"
+checksum = "a23eb6b1614318a8071c9b2521f36b424b2c83db5eb3a0fead4a6c0809af6e61"
 
 [[package]]
 name = "arraydeque"
@@ -435,9 +435,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-client"
-version = "0.29.0"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46f44eebc9bb4a596f0c770822facc117416a02db9c78d10b451956597011a3e"
+checksum = "09a9ab7609f5c98ff34fc5ba33ad50bfdecca771165640eb88e8054ccef18916"
 dependencies = [
  "chia-protocol",
  "chia-sdk-types",
@@ -454,9 +454,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-coinset"
-version = "0.29.0"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8cac592b1eece9eb9e46db9027d58f4c3ec9b549c5419e249998c53ed7795bd"
+checksum = "bb55e723e4b847fdbb9e729fef1a0f21c624b618bda8a17c9c205ff9db64a1e1"
 dependencies = [
  "chia-protocol",
  "hex",
@@ -468,9 +468,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-derive"
-version = "0.29.0"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b7ac9360740b8af343eadcb60f3155d6f9f56bef2f56d79b71e3e6be2a5d529"
+checksum = "add9e60902df26dfe987d87f1b19ab7e359c6269fa4f222a9d79c02a9dba969d"
 dependencies = [
  "convert_case",
  "quote",
@@ -479,9 +479,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-driver"
-version = "0.29.0"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca91b1e0ec55edbe736cf9f7a33b492ca05c635ccb022fe9511be83b6ba3e235"
+checksum = "260c97751f8986e7f82091e3bee504044efb79857f26bfcd2b5d37cba674f79e"
 dependencies = [
  "bigdecimal",
  "bip39",
@@ -511,9 +511,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-signer"
-version = "0.29.0"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8fd70865cfd9881f5282d4a9c5e42905f96f88b2ec35efda8cf23c944e258d20"
+checksum = "d71037389cc3bdebc47c9c6cfebc898244393e4e7246b486d64922a9c23bbac6"
 dependencies = [
  "chia-bls 0.26.0",
  "chia-consensus",
@@ -529,9 +529,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-test"
-version = "0.29.0"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c459f50deea22e03ab715868d9ed0c11922d7325a0dd8d328d07b3ad5df63e5c"
+checksum = "365b95611176b670cd61455ce6578cccf740a66b7d27cd3b31395c12f4073bc2"
 dependencies = [
  "anyhow",
  "bip39",
@@ -567,9 +567,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-types"
-version = "0.29.0"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b14123f03a5ccb66c245b216481436749d11c8f394c0fe7a2bf1e35f2a582f6f"
+checksum = "298b92f005cd884861678808813cb49dca3545231b6b442d691e01535ed86825"
 dependencies = [
  "chia-bls 0.26.0",
  "chia-consensus",
@@ -589,9 +589,9 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-utils"
-version = "0.29.0"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca897c36475cbc6832271cacdc4c5d13f5963ef61f99cebec246fd91e981306f"
+checksum = "738bc2a53dcece78184aca4de617df666e984af0c86560131213039889d927fc"
 dependencies = [
  "bech32",
  "chia-protocol",
@@ -678,9 +678,9 @@ dependencies = [
 
 [[package]]
 name = "chia-wallet-sdk"
-version = "0.29.0"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ae886c1c212efcbd43564e8039920d3bd94a8db35e8fbd649e6b01ebe8c167e"
+checksum = "94547c50b141ad9ae84f9bcc26c0bf467b7570f0354c906fb203eeea69886a4c"
 dependencies = [
  "chia-bls 0.26.0",
  "chia-protocol",
@@ -921,9 +921,9 @@ checksum = "2a2330da5de22e8a3cb63252ce2abb30116bf5265e89c0e01bc17015ce30a476"
 
 [[package]]
 name = "datalayer-driver"
-version = "1.0.1"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0e7ee25be16a809900191178eb535f16d4543a9a7c504f94516ae10d20909f0"
+checksum = "7abd50de97bd63bae84bc92766f3c5570689fba4e6c45b0e4855471351f8749c"
 dependencies = [
  "chia",
  "chia-puzzles",
@@ -933,6 +933,7 @@ dependencies = [
  "futures-util",
  "hex",
  "hex-literal",
+ "indexmap",
  "num-bigint",
  "openssl",
  "openssl-sys",
@@ -1605,9 +1606,9 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "2.11.0"
+version = "2.11.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2481980430f9f78649238835720ddccc57e52df14ffce1c6f37391d61b563e9"
+checksum = "4b0f83760fb341a774ed326568e19f5a863af4a952def8c39f9ab92fd95b88e5"
 dependencies = [
  "equivalent",
  "hashbrown",
@@ -2520,18 +2521,28 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.219"
+version = "1.0.228"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f0e2c6ed6606019b4e29e69dbaba95b11854410e5347d525002456dbbb786b6"
+checksum = "9a8e94ea7f378bd32cbbd37198a4a91436180c5bb472411e48b5ec2e2124ae9e"
+dependencies = [
+ "serde_core",
+ "serde_derive",
+]
+
+[[package]]
+name = "serde_core"
+version = "1.0.228"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41d385c7d4ca58e59fc732af25c3983b67ac852c1a25000afe1175de458b67ad"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.219"
+version = "1.0.228"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b0276cf7f2c73365f7157c8123c21cd9a50fbbd844757af28ca1f5925fc2a00"
+checksum = "d540f220d3187173da220f885ab66608367b6574e925011a9353e4badda91d79"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2540,14 +2551,15 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.143"
+version = "1.0.145"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d401abef1d108fbd9cbaebc3e46611f4b1021f714a0597a71f41ee463f5f4a5a"
+checksum = "402a6f66d8c709116cf22f558eab210f5a50187f702eb4d7e5ef38d9a7f1c79c"
 dependencies = [
  "itoa",
  "memchr",
  "ryu",
  "serde",
+ "serde_core",
 ]
 
 [[package]]
