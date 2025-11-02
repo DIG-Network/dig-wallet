@@ -922,6 +922,8 @@ checksum = "2a2330da5de22e8a3cb63252ce2abb30116bf5265e89c0e01bc17015ce30a476"
 [[package]]
 name = "datalayer-driver"
 version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7abd50de97bd63bae84bc92766f3c5570689fba4e6c45b0e4855471351f8749c"
 dependencies = [
  "chia",
  "chia-puzzles",
@@ -3664,7 +3666,3 @@ dependencies = [
  "quote",
  "syn",
 ]
-
-[[patch.unused]]
-name = "dig-store-coin"
-version = "0.1.0"

@@ -7,21 +7,20 @@ use base64::{engine::general_purpose, Engine as _};
 use bip39::{Language, Mnemonic};
 use chia::protocol::CoinState;
 use chia::puzzles::cat::CatArgs;
-use chia_wallet_sdk::driver::{Cat};
-use chia_wallet_sdk::prelude::{ ToClvm, TreeHash};
+use chia_wallet_sdk::driver::Cat;
+use chia_wallet_sdk::prelude::TreeHash;
+use datalayer_driver::wallet::DIG_ASSET_ID;
 use datalayer_driver::{
     address_to_puzzle_hash, connect_random, get_coin_id, master_public_key_to_first_puzzle_hash,
     master_public_key_to_wallet_synthetic_key, master_secret_key_to_wallet_synthetic_secret_key,
     puzzle_hash_to_address, secret_key_to_public_key, sign_message, verify_signature, Bytes,
     Bytes32, Coin, CoinSpend, NetworkType, Peer, PublicKey, SecretKey, Signature,
 };
-use hex_literal::hex;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::fs;
 use std::path::PathBuf;
-use datalayer_driver::wallet::DIG_ASSET_ID;
 
 const KEYRING_FILE: &str = "keyring.json";
 // Cache duration constant - keeping for potential future use
@@ -266,7 +265,7 @@ impl Wallet {
             public_key,
             signature,
         )
-            .map_err(|e| WalletError::CryptoError(e.to_string()))
+        .map_err(|e| WalletError::CryptoError(e.to_string()))
     }
 
     /// Get all unspent DIG Token coins
@@ -287,8 +286,8 @@ impl Wallet {
             None, // previous_height - start from genesis
             datalayer_driver::constants::get_mainnet_genesis_challenge(), // Use mainnet for now
         )
-            .await
-            .map_err(|e| WalletError::NetworkError(format!("Failed to get unspent coins: {}", e)))?;
+        .await
+        .map_err(|e| WalletError::NetworkError(format!("Failed to get unspent coins: {}", e)))?;
 
         // Convert coin states to coins and filter out omitted coins
         let omit_coin_ids: Vec<Bytes32> = omit_coins.iter().map(get_coin_id).collect();
@@ -320,7 +319,9 @@ impl Wallet {
             };
 
             //Parse CAT to prove lineage
-            let cat_parse_result = datalayer_driver::async_api::prove_dig_cat_coin(peer, coin, coin_created_height).await;
+            let cat_parse_result =
+                datalayer_driver::async_api::prove_dig_cat_coin(peer, coin, coin_created_height)
+                    .await;
             match cat_parse_result {
                 Ok(parsed_cat) => {
                     // lineage proved. append coin in question
@@ -355,8 +356,11 @@ impl Wallet {
         let available_dig_cats = self
             .get_all_unspent_dig_cats(peer, omit_coins, verbose)
             .await?;
-        
-        let dig_coins = available_dig_cats.iter().map(|cat| cat.coin).collect::<Vec<_>>();
+
+        let dig_coins = available_dig_cats
+            .iter()
+            .map(|cat| cat.coin)
+            .collect::<Vec<_>>();
 
         // Use the DataLayer-Driver's select_coins function
         let selected_coins = datalayer_driver::select_coins(&dig_coins, coin_amount)
@@ -367,15 +371,16 @@ impl Wallet {
         }
 
         let selected_coins_ids: HashSet<Bytes32> = selected_coins.iter().map(get_coin_id).collect();
-        let selected_cats = available_dig_cats.into_iter().filter(|cat| selected_coins_ids.contains(&cat.coin.coin_id())).collect::<Vec<_>>();
+        let selected_cats = available_dig_cats
+            .into_iter()
+            .filter(|cat| selected_coins_ids.contains(&cat.coin.coin_id()))
+            .collect::<Vec<_>>();
 
         Ok(selected_cats)
     }
 
     pub async fn get_dig_balance(&self, peer: &Peer, verbose: bool) -> Result<u64, WalletError> {
-        let dig_cats = self
-            .get_all_unspent_dig_cats(peer, vec![], verbose)
-            .await?;
+        let dig_cats = self.get_all_unspent_dig_cats(peer, vec![], verbose).await?;
         let dig_balance = dig_cats.iter().map(|c| c.coin.amount).sum::<u64>();
         Ok(dig_balance)
     }
