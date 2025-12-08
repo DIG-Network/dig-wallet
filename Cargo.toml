@@ -2,7 +2,7 @@
 name = "dig-wallet"
 version = "1.0.0"
 edition = "2021"
-authors = ["DIG Network <info@dig.net>"]
+authors = ["DIG Network <info@dig.net>", "William Wills <wwills2@protonmail.com>"]
 description = "A comprehensive Rust wallet implementation for Chia blockchain with full DataLayer-Driver integration"
 homepage = "https://github.com/DIG-Network/digwallet-rust"
 repository = "https://github.com/DIG-Network/digwallet-rust"

@@ -6,15 +6,11 @@ use aes_gcm::{
 use base64::{engine::general_purpose, Engine as _};
 use bip39::{Language, Mnemonic};
 use chia::protocol::CoinState;
-use chia::puzzles::cat::CatArgs;
-use chia_wallet_sdk::driver::Cat;
-use chia_wallet_sdk::prelude::TreeHash;
-use datalayer_driver::wallet::DIG_ASSET_ID;
 use datalayer_driver::{
     address_to_puzzle_hash, connect_random, get_coin_id, master_public_key_to_first_puzzle_hash,
     master_public_key_to_wallet_synthetic_key, master_secret_key_to_wallet_synthetic_secret_key,
     puzzle_hash_to_address, secret_key_to_public_key, sign_message, verify_signature, Bytes,
-    Bytes32, Coin, CoinSpend, NetworkType, Peer, PublicKey, SecretKey, Signature,
+    Bytes32, Coin, CoinSpend, DigCoin, NetworkType, Peer, PublicKey, SecretKey, Signature,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -269,20 +265,19 @@ impl Wallet {
     }
 
     /// Get all unspent DIG Token coins
-    pub async fn get_all_unspent_dig_cats(
+    pub async fn get_all_unspent_dig_coins(
         &self,
         peer: &Peer,
         omit_coins: Vec<Coin>,
         verbose: bool,
-    ) -> Result<Vec<Cat>, WalletError> {
+    ) -> Result<Vec<DigCoin>, WalletError> {
         let owner_puzzle_hash = self.get_owner_puzzle_hash().await?;
-        let dig_cat_ph = CatArgs::curry_tree_hash(DIG_ASSET_ID, TreeHash::from(owner_puzzle_hash));
-        let dig_cat_ph_bytes = Bytes32::from(dig_cat_ph.to_bytes());
+        let dig_ph = DigCoin::puzzle_hash(owner_puzzle_hash);
 
         // Get unspent coin states from the DataLayer-Driver async API
         let unspent_coin_states = datalayer_driver::async_api::get_all_unspent_coins(
             peer,
-            dig_cat_ph_bytes,
+            dig_ph,
             None, // previous_height - start from genesis
             datalayer_driver::constants::get_mainnet_genesis_challenge(), // Use mainnet for now
         )
@@ -297,31 +292,11 @@ impl Wallet {
             .filter(|coin_state| !omit_coin_ids.contains(&get_coin_id(&coin_state.coin)))
             .collect();
 
-        let mut proved_dig_cats: Vec<Cat> = vec![];
+        let mut proved_dig_cats: Vec<DigCoin> = vec![];
 
         for coin_state in &available_coin_states {
-            let coin = &coin_state.coin;
-            let coin_id = coin.coin_id();
-            let coin_created_height = match coin_state.created_height {
-                Some(height) => height,
-                None => {
-                    if verbose {
-                        eprintln!(
-                            "ERROR: coin_id {} | {}",
-                            coin_id,
-                            WalletError::CoinSetError(
-                                "Cannot determine coin creation height".to_string()
-                            )
-                        );
-                    }
-                    continue;
-                }
-            };
-
             //Parse CAT to prove lineage
-            let cat_parse_result =
-                datalayer_driver::async_api::prove_dig_cat_coin(peer, coin, coin_created_height)
-                    .await;
+            let cat_parse_result = DigCoin::from_coin_state(peer, coin_state).await;
             match cat_parse_result {
                 Ok(parsed_cat) => {
                     // lineage proved. append coin in question
@@ -331,7 +306,7 @@ impl Wallet {
                     if verbose {
                         eprintln!(
                             "ERROR: coin_id {} | {}",
-                            coin_id,
+                            coin_state.coin.coin_id(),
                             WalletError::CoinSetError(format!(
                                 "Failed to parse CAT and prove lineage: {}",
                                 error
@@ -346,20 +321,20 @@ impl Wallet {
         Ok(proved_dig_cats)
     }
 
-    pub async fn select_unspent_dig_cats(
+    pub async fn select_unspent_dig_coins(
         &self,
         peer: &Peer,
         coin_amount: u64,
         omit_coins: Vec<Coin>,
         verbose: bool,
-    ) -> Result<Vec<Cat>, WalletError> {
+    ) -> Result<Vec<DigCoin>, WalletError> {
         let available_dig_cats = self
-            .get_all_unspent_dig_cats(peer, omit_coins, verbose)
+            .get_all_unspent_dig_coins(peer, omit_coins, verbose)
             .await?;
 
         let dig_coins = available_dig_cats
             .iter()
-            .map(|cat| cat.coin)
+            .map(|dig_coin| dig_coin.cat().coin)
             .collect::<Vec<_>>();
 
         // Use the DataLayer-Driver's select_coins function
@@ -371,17 +346,22 @@ impl Wallet {
         }
 
         let selected_coins_ids: HashSet<Bytes32> = selected_coins.iter().map(get_coin_id).collect();
-        let selected_cats = available_dig_cats
+        let dig_coin = available_dig_cats
             .into_iter()
-            .filter(|cat| selected_coins_ids.contains(&cat.coin.coin_id()))
+            .filter(|dig_coin| selected_coins_ids.contains(&dig_coin.cat().coin.coin_id()))
             .collect::<Vec<_>>();
 
-        Ok(selected_cats)
+        Ok(dig_coin)
     }
 
     pub async fn get_dig_balance(&self, peer: &Peer, verbose: bool) -> Result<u64, WalletError> {
-        let dig_cats = self.get_all_unspent_dig_cats(peer, vec![], verbose).await?;
-        let dig_balance = dig_cats.iter().map(|c| c.coin.amount).sum::<u64>();
+        let dig_cats = self
+            .get_all_unspent_dig_coins(peer, vec![], verbose)
+            .await?;
+        let dig_balance = dig_cats
+            .iter()
+            .map(|dig_coin| dig_coin.cat().coin.amount)
+            .sum::<u64>();
         Ok(dig_balance)
     }
 
