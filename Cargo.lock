@@ -921,9 +921,9 @@ checksum = "2a2330da5de22e8a3cb63252ce2abb30116bf5265e89c0e01bc17015ce30a476"
 
 [[package]]
 name = "datalayer-driver"
-version = "2.0.0"
+version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7abd50de97bd63bae84bc92766f3c5570689fba4e6c45b0e4855471351f8749c"
+checksum = "a1906e1a1ca26c4e9ee52f738519132c180300c35380c7b2fb2c9c5af1b6207f"
 dependencies = [
  "chia",
  "chia-puzzles",
@@ -978,18 +978,15 @@ dependencies = [
 
 [[package]]
 name = "dig-wallet"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "aes-gcm",
  "base64 0.21.7",
  "bip39",
  "chia",
- "chia-wallet-sdk",
  "datalayer-driver",
  "dirs",
  "hex",
- "hex-literal",
- "once_cell",
  "rand",
  "serde",
  "serde_json",
